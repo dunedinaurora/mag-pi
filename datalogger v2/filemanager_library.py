@@ -22,8 +22,8 @@ def CreateDiffs(diffsArray):
         with open (k.FILE_4DIFFS,'a') as f:
             f.write("Date/Time (UTC), Ultra-smoothed Differences" + "\n")
             for datapoints in diffsArray:
-                f.write(datapoints.dateTime + "," + str(datapoints.raw_x) + "," + str(datapoints.raw_y) + "," + str(datapoints.raw_z) + '\n')
-                #f.write(datapoints.dateTime + "," + str(datapoints.raw_x)  + '\n')
+                # f.write(datapoints.dateTime + "," + str(datapoints.raw_x) + "," + str(datapoints.raw_y) + "," + str(datapoints.raw_z) + '\n')
+                f.write(datapoints.dateTime + "," + str(datapoints.raw_f) + '\n')
     except IOError:
         print("WARNING: There was a problem accessing " + k.FILE_4DIFFS)
         logging.warning("WARNING: File IO Exception raised whilst accessing file: " + k.FILE_4DIFFS)
@@ -46,8 +46,8 @@ def create_hichart_datafile(readingsArray, splitvalue, filename):
         with open(filename, 'a') as f:
             f.write("Date/Time (UTC), Reading" + "\n")
             for datapoints in displayList:
-                f.write(datapoints.dateTime + "," + str(datapoints.raw_x) + "," + str(datapoints.raw_y) + "," + str(datapoints.raw_z) + '\n')
-                # f.write(datapoints.dateTime + "," + str(datapoints.raw_x) + '\n')
+                # f.write(datapoints.dateTime + "," + str(datapoints.raw_x) + "," + str(datapoints.raw_y) + "," + str(datapoints.raw_z) + '\n')
+                f.write(datapoints.dateTime + "," + str(datapoints.raw_f) + '\n')
     except IOError:
         print("WARNING: There was a problem accessing " + filename)
         logging.warning("WARNING: File IO Exception raised whilst accessing file: " + filename)
@@ -65,7 +65,7 @@ def CreateRawArray():
                 line = line.strip() # remove any trailing whitespace chars like CR and NL
                 values = line.split(",")
                 # See the datapoint object/constructor for the current values it holds.
-                dp = DataPoint.DataPoint(values[0], values[1], values[2], values[3])
+                dp = DataPoint.DataPoint(values[0], values[1])
                 readings.append(dp)
         print("Array loaded from file. Size: " + str(len(readings)) + " records")
     else:

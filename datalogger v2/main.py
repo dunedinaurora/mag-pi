@@ -52,7 +52,7 @@ def LogRawMagnetometerData(logDataToAdd):
     lg = logDataToAdd.split(",")
 
     # Create the DataPoint object, pass in the datetime and the 3 list values
-    dp = DataPoint.DataPoint(str(logdate), lg[0], lg[1], lg[2])
+    dp = DataPoint.DataPoint(str(logdate), lg[0])
 
     # DP is added to array.
     filemanager_library.AppendDataPoint(dp, mag_readings)
