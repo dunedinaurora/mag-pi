@@ -1,28 +1,23 @@
 # #################################################################################
 # This python library is to provide functions to access a database
 # #################################################################################
-
+import mysql.connector as mariadb
+import logging
+import re
+# import connect.py
 
 # #################################################################################
 # Function Definitions
 # #################################################################################
-
-# *****************************************************************************************
-# FUNCTION - create a rotating log for data based on date
-# *****************************************************************************************
-def StoreInDB(queryData, stringDate):
-
+def StoreInDB(dp):
     # data is at positions 2
-    timestamp = stringDate
-    idStation = k.STATION_ID
+    timestamp = dp.dateTime
+    dataF = dp.raw_f
 
-    # We need to convert the string to DECIMAL and strip off any string greeblies, as our DB epects XYZ values to be decs
-    # dataF = Decimal(queryData[1].strip('"'))
+    # The ID number for POrtobello as stored in the Database
+    idStation = 1
 
-    dataF = queryData
-
-
-    # When building up query strings, use the mariaDBs pyformat method as it will ensure strings stay as strings, not escape 
+    # When building up query strings, use the mariaDBs pyformat method as it will ensure strings stay as strings, not escape
     # codes or anything horrid...
     # http://stackoverflow.com/questions/7929364/python-best-practice-and-securest-to-connect-to-mysql-and-execute-queries
     # eg: cursor.execute("SELECT spam FROM eggs WHERE lumberjack = %(jack)s", {'jack': lumberjack})
@@ -65,9 +60,6 @@ def StoreInDB(queryData, stringDate):
         logging.critical(errorMsg)
 
 
-# #################################################################################
-# Main program starts
-# #################################################################################
 
 # connect to DB
 #     if connect_ok

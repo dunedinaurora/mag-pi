@@ -61,20 +61,20 @@ def process_data(input_data_array):
     #
     # ###########################################################
 
-    # to get the last 4 hours the split value is mag read frequency * 60 * 4
-    splitvalue = k.MAG_READ_FREQ * 60 * 1
-    onehrfile = "graphing/G857_01hr.csv"
-    ofm.create_hichart_datafile(smoothed_data_array, splitvalue, onehrfile)
+    # # to get the last 4 hours the split value is mag read frequency * 60 * 4
+    # splitvalue = k.MAG_READ_FREQ * 60 * 1
+    # onehrfile = "graphing/G857_01hr.csv"
+    # ofm.create_hichart_datafile(smoothed_data_array, splitvalue, onehrfile)
+    #
+    # # to get the last 4 hours the split value is mag read frequency * 60 * 4
+    # splitvalue = k.MAG_READ_FREQ * 60 * 3
+    # ofm.create_hichart_datafile(smoothed_data_array, splitvalue, k.FILE_4HR)
+    #
+    # # to get the last 24 hours the split value is mag read frequency * 60 * 23
+    # splitvalue = k.MAG_READ_FREQ * 60 * 23
+    # ofm.create_hichart_datafile(smoothed_data_array, splitvalue, k.FILE_24HR)
 
-    # to get the last 4 hours the split value is mag read frequency * 60 * 4
-    splitvalue = k.MAG_READ_FREQ * 60 * 3
-    ofm.create_hichart_datafile(smoothed_data_array, splitvalue, k.FILE_4HR)
-
-    # to get the last 24 hours the split value is mag read frequency * 60 * 23
-    splitvalue = k.MAG_READ_FREQ * 60 * 23
-    ofm.create_hichart_datafile(smoothed_data_array, splitvalue, k.FILE_24HR)
-
-    dp.binnedaverages(data_array) # use original data
+    # dp.binnedaverages(data_array) # use original data
 
     # # ########################################################
     # # create the display files for graphing, using Diffs.csv
@@ -99,18 +99,19 @@ while True:
     mag_readings = []
     try:
         mag_readings = ofm.CreateRawArray()
-		process_data(mag_readings)
+        process_data(mag_readings)
         # Calculate the processing time
-        endtime = time.time()
-        processingtime = endtime - starttime
-        processingtime = str(processingtime)[:5]
-        print("Processing complete. Elapsed time: " + processingtime + " seconds.\n")
+
         print(str(len(mag_readings)) + " records loaded")
 
     except:
         print("ERROR: Problem opening file")
         logging.critical(" ERROR: Problem opening file. Unable to create display files")
 
+    endtime = time.time()
+    processingtime = endtime - starttime
+    processingtime = str(processingtime)[:5]
+    print("Processing complete. Elapsed time: " + processingtime + " seconds.\n")
 
     timedelay = DELAY_SHORT_INTERVAL + random.randint(0,RANDOM_SECS)
     time.sleep(timedelay)

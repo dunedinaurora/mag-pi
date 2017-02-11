@@ -65,7 +65,7 @@ def create_diffs_array(readings_array):
     if len(readings_array) > 2:
         for i in range (1, len(readings_array)):
             counterbit = 0
-            diff_x = (Decimal(readings_array[i].raw_x) - Decimal(readings_array[i-1].raw_x))
+            diff_x = (Decimal(readings_array[i].raw_x) - Decimal(readings_array[i-1].raw_f))
             # Each IF statement checks to see if reading exceeds the spike value. If it does
             # then we change the reading to zero. We trip the counterbit and at the end of the
             # data read incr the spike counter

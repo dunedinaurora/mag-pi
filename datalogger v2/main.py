@@ -8,11 +8,13 @@ import logging
 import os
 import re
 import time
+import database_library as datab
+from decimal import Decimal, getcontext
+import math
 # from constants import mag_readings
 
-__author__ = 'Vaughn Malkin'
-__version__ = "1.8.0"
-
+__author__ = 'Vaughn Malkin & Chris Campbell'
+__version__ = "2.0"
 
 # *****************************************************************************************
 # This script logs data from a serial port. The data format is given below. This data is 
@@ -29,7 +31,9 @@ __version__ = "1.8.0"
 # Check serial data is 3 positive or negative comma separated decimal numbers.
 def CheckData(logDataToAdd):
     # Checking here.
-    if re.match(r'\A-?\d+(\.\d+)?[,]-?\d+(\.\d+)?[,]-?\d+(\.\d+)?\Z',logDataToAdd):
+    # if re.match(r'\A-?\d+(\.\d+)?[,]-?\d+(\.\d+)?[,]-?\d+(\.\d+)?\Z', logDataToAdd):
+
+    if re.match(r'^(\d{3} \d{6}[ ?]\d{6})$',logDataToAdd):
         LogRawMagnetometerData(logDataToAdd)
     else:
         print("Garbage data from Magnetometer: " + logDataToAdd)
@@ -39,60 +43,74 @@ def CheckData(logDataToAdd):
 # FUNCTION - create a rotating log for data based on date
 # *****************************************************************************************
 def LogRawMagnetometerData(logDataToAdd):
-    # get current datetime based on system clock. NOT UTC by default
-    # dt = datetime.datetime.now()
-
     # dt as UTC
     dt = datetime.datetime.utcnow()
 
     # a formatted Datetime object for recording inside the logfile
     logdate = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-4]
 
-    # LogdatatoAdd is 3 comma sep values. Split them on the comma into a list thing.
-    lg = logDataToAdd.split(",")
+    # G857 splits on spaces and possibly question marks
+    splitdata = re.split(r'[\s?]', logDataToAdd)
 
-    # Create the DataPoint object, pass in the datetime and the 3 list values
-    dp = DataPoint.DataPoint(str(logdate), lg[0])
+    # G857 has single data of field strength that must be divided by 10 to get the decimal point, then converted
+    # back to a string
+    g857data = Decimal(splitdata[2].strip('"'))
+    g857data = (g857data / 10)
 
-    # DP is added to array.
-    filemanager_library.AppendDataPoint(dp, mag_readings)
+    # #############################################################################################
+    # Check if the difference between readings exceeds the spike value.
+    # ONLY process the datapoint if it does not
+    # #############################################################################################
+    if math.sqrt(math.pow(g857data - k.lastdatavalue, 2)) < k.NOISE_SPIKE:
+        # Create the DataPoint object, pass in the datetime and the 3 list values
+        dp = DataPoint.DataPoint(str(logdate), g857data)
 
-    # Save the array to the ArraySave.csv file loaded at the beginning
-    filemanager_library.SaveRawArray(mag_readings)
+        # DP is added to array.
+        filemanager_library.AppendDataPoint(dp, mag_readings)
 
-    ###############################################
-    # Logdata to be appended to current 24 hr file
-    ###############################################
-    # Grab the latest entry from th readings array with calculated values.
-    # By this point readings will have the differences added.
-    logData = mag_readings[len(mag_readings) - 1].print_values()
+        # Save the array to the ArraySave.csv file loaded at the beginning
+        filemanager_library.SaveRawArray(mag_readings)
 
-    # RAW log file name is created now. Get the date part of dt, add file suffix
-    RawlogName = str(dt.date())
-    RawlogName = k.PATH_LOGS + RawlogName + '.csv'
+        ###############################################
+        # Logdata to be appended to current 24 hr file
+        ###############################################
+        # Grab the latest entry from th readings array with calculated values.
+        # By this point readings will have the differences added.
+        logData = mag_readings[len(mag_readings) - 1].print_values()
 
-    # If the logfile exists append the datapoint
-    if os.path.isfile(RawlogName):
-        try:
-            with open (RawlogName,'a') as f:
-                f.write(logData + '\n')
-                # print("Data logged ok. Array Size: " + str(len(readings)))
-        except IOError:
-            print("WARNING: There was a problem accessing the current logfile: " + RawlogName)
-            logging.warning("WARNING: File IO Exception raised whilst accessing file: " + RawlogName)
+        # RAW log file name is created now. Get the date part of dt, add file suffix
+        RawlogName = str(dt.date())
+        RawlogName = k.PATH_LOGS + RawlogName + '.csv'
 
-    # ELSE add the header to the file because it is new
+        # If the logfile exists append the datapoint
+        if os.path.isfile(RawlogName):
+            try:
+                with open (RawlogName,'a') as f:
+                    f.write(logData + '\n')
+                    # print("Data logged ok. Array Size: " + str(len(readings)))
+            except IOError:
+                print("WARNING: There was a problem accessing the current logfile: " + RawlogName)
+                logging.warning("WARNING: File IO Exception raised whilst accessing file: " + RawlogName)
+
+        # ELSE add the header to the file because it is new
+        else:
+            try:
+                with open (RawlogName,'a') as f:
+                    f.write(dp.print_labels() + '\n')
+
+                print("Creating new logfile")
+            except IOError:
+                print("WARNING: There was a problem accessing the current logfile: " + RawlogName)
+                logging.warning("WARNING: File IO Exception raised whilst accessing file: " + RawlogName)
+
+        # If applicable, pass the datapoint to the MYSQL database routine.
+        # datab.StoreInDB(dp)
     else:
-        try:
-            with open (RawlogName,'a') as f:
-                f.write(dp.print_labels() + '\n')
+        print("Spike detected...")
 
-            print("Creating new logfile")
-        except IOError:
-            print("WARNING: There was a problem accessing the current logfile: " + RawlogName)
-            logging.warning("WARNING: File IO Exception raised whilst accessing file: " + RawlogName)
-
-    # If applicable, pass the datapoint to the MYSQL database routine.
+    # Increment the blip counter to the latest successful value
+    # IF the value is a blip then we keep the value as it is until things settle down.
+    k.lastdatavalue = g857data
 
 # *****************************************************************************************
 # E N D   F U N C T I O N   D E F I N I T I O N S
@@ -103,14 +121,15 @@ def LogRawMagnetometerData(logDataToAdd):
 # B E G I N   M A I N
 # *****************************************************************************************
 
-print("Pything Data Logger")
-print("(c) Vaughn Malkin 2015, 2016, 2017")
+print("Datalogger for DunedinAurora.NZ by " + __author__)
+print("(c) 2015, 2016, 2017")
 print("Version " + __version__)
 print(" ")
 print("YOU MUST USE PYTHON VER 3 FOR THIS CODE")
 
 # Setup error/bug logging
 logging.basicConfig(filename=k.FILE_ERRORLOG, format='%(asctime)s %(message)s')
+
 
 # setup file paths
 # Set up file structure for Data logs. Linux systems might need use of the mode arg to set correct permissions.
@@ -131,6 +150,7 @@ except:
 
 # setup array for datapoints
 mag_readings = []
+lastdatavalue = 0
 
 # Set up the infernal com port. Add a TRY-CATCH to deal with possible com port problems
 try:
